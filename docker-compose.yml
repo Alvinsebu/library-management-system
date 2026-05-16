@@ -1,0 +1,95 @@
+services:
+  # MongoDB
+  mongodb:
+    restart: unless-stopped
+    image: mongo:7.0
+    container_name: library-mongodb
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password123
+      MONGO_INITDB_DATABASE: library_db
+    volumes:
+      - mongodb_data:/data/db
+      - ./docker/init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js
+    networks:
+      - library-network
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/library_db --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Spring Boot Application
+  app:
+    restart: unless-stopped
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: library-app
+    ports:
+      - "8080:8080"
+      - "9090:9090"  # Actuator/Prometheus port
+      - "9091:9091"  # gRPC port
+    environment:
+      SPRING_DATA_MONGODB_URI: mongodb://admin:password123@mongodb:27017/library_db?authSource=admin
+      SPRING_DATA_MONGODB_DATABASE: library_db
+      SPRING_DATA_MONGODB_AUTHENTICATION_DATABASE: admin
+      JWT_SECRET: "your-super-secret-key-that-should-be-very-long-and-secure-in-production"
+      JWT_EXPIRATION: 86400000
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,prometheus,info,metrics
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - library-network
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8080/actuator/health" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Prometheus
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: library-prometheus
+    ports:
+      - "9000:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    networks:
+      - library-network
+    depends_on:
+      - app
+
+  # Grafana
+  grafana:
+    image: grafana/grafana:latest
+    container_name: library-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin123
+      GF_INSTALL_PLUGINS: grafana-piechart-panel
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./prometheus/grafana-provisioning:/etc/grafana/provisioning
+    networks:
+      - library-network
+    depends_on:
+      - prometheus
+
+volumes:
+  mongodb_data:
+  prometheus_data:
+  grafana_data:
+
+networks:
+  library-network:
+    driver: bridge

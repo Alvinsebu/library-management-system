@@ -1,0 +1,64 @@
+# Gradle
+.gradle/
+build/
+*.gradle.kts.bak
+
+# IDE
+.idea/
+*.iml
+*.iws
+*.ipr
+.classpath
+.project
+.settings/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# IntelliJ
+out/
+*.class
+*.jar
+*.war
+
+# Maven
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+
+# VSCode
+.vscode/
+*.code-workspace
+
+# Environment
+.env
+.env.local
+.env.production.local
+
+# Logs
+logs/
+*.log
+
+# Runtime
+pid/
+
+# Temp
+tmp/
+temp/
+*.tmp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Node (if applicable)
+node_modules/
+package-lock.json
+yarn.lock
+
+# Python (if applicable)
+__pycache__/
+*.pyc
+venv/
+env/

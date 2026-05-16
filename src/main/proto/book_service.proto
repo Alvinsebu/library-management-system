@@ -1,0 +1,45 @@
+syntax = "proto3";
+
+package com.libmgmt.grpc;
+
+option java_multiple_files = true;
+option java_package = "com.libmgmt.grpc";
+option java_outer_classname = "BookServiceProto";
+
+
+message Book {
+  string id = 1;
+  string title = 2;
+  string author = 3;
+  bool available = 4;
+  string borrowed_by = 5;
+  string borrowed_at = 6;
+  string expiry_at = 7;
+  string policy = 8;
+}
+
+message GetBookByIdRequest {
+  string id = 1;
+}
+
+message GetBookByIdResponse {
+  bool success = 1;
+  string message = 2;
+  Book book = 3;
+}
+
+message ListBooksRequest {
+  bool available_only = 1;
+}
+
+message ListBooksResponse {
+  bool success = 1;
+  string message = 2;
+  repeated Book books = 3;
+  int32 count = 4;
+}
+
+service BookService {
+  rpc GetBookById(GetBookByIdRequest) returns (GetBookByIdResponse);
+  rpc ListBooks(ListBooksRequest) returns (ListBooksResponse);
+}

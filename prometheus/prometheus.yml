@@ -1,0 +1,15 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    monitor: 'library-management-system'
+
+scrape_configs:
+  - job_name: 'library-app'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['app:9090']
+
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
