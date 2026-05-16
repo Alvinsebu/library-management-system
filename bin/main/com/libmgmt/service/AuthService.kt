@@ -13,6 +13,12 @@ import org.slf4j.LoggerFactory
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Service
 
+/**
+ * Handles registration and authentication workflows.
+ *
+ * This service is intentionally designed to preserve authentication behavior while
+ * keeping implementation details encapsulated and easy to maintain.
+ */
 @Service
 class AuthService(
     private val userRepository: UserRepository,

@@ -17,6 +17,11 @@ import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import java.time.LocalDateTime
 
+/**
+ * Manages book lifecycle operations: creation, borrowing, returning, and scheduled returns.
+ *
+ * The service performs domain validation and preserves the existing business rules.
+ */
 @Service
 class BookService(
     private val bookRepository: BookRepository,

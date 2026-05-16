@@ -24,6 +24,11 @@ import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 
+/**
+ * Rest endpoints for book listing, borrowing, returning, and user book queries.
+ *
+ * This controller is protected by JWT bearer authentication.
+ */
 @RestController
 @RequestMapping("/books")
 @Tag(name = "Books", description = "Book management endpoints")

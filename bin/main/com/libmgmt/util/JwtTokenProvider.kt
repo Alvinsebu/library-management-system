@@ -8,6 +8,11 @@ import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
 import java.util.Date
 
+/**
+ * Generates and validates JWT tokens for user sessions.
+ *
+ * This provider is intentionally lightweight and preserves the existing JWT contract.
+ */
 @Component
 class JwtTokenProvider(
     @Value("\${jwt.secret}")
@@ -19,10 +24,16 @@ class JwtTokenProvider(
 
     private val signingKey = Keys.hmacShaKeyFor(jwtSecret.toByteArray())
 
+    /**
+     * Create a reusable JWT parser instance configured with the signing key.
+     */
     private fun jwtParser(): JwtParser = Jwts.parser()
         .setSigningKey(signingKey)
         .build()
 
+    /**
+     * Create a signed JWT token for the provided user email and ID.
+     */
     fun generateToken(userEmail: String, userId: String): String {
         val now = Date()
         val expiryDate = Date(now.time + jwtExpiration)
@@ -50,6 +61,9 @@ class JwtTokenProvider(
             .get("userId", String::class.java)
     }
 
+    /**
+     * Validate the token signature and expiration.
+     */
     fun isTokenValid(token: String): Boolean {
         return try {
             jwtParser().parseClaimsJws(token)
@@ -59,6 +73,9 @@ class JwtTokenProvider(
         }
     }
 
+    /**
+     * Extract the bearer token value from the Authorization header.
+     */
     fun extractTokenFromHeader(authHeader: String?): String? {
         return authHeader
             ?.takeIf { it.startsWith("Bearer ") }

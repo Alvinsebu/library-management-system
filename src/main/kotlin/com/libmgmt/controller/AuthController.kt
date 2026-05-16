@@ -17,6 +17,11 @@ import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 
+/**
+ * Exposes authentication endpoints for signup and login.
+ *
+ * All responses are wrapped in a shared [ApiResponse] envelope.
+ */
 @RestController
 @RequestMapping("/auth")
 @Tag(name = "Authentication", description = "Authentication endpoints")

@@ -13,6 +13,11 @@ import org.springframework.web.context.request.WebRequest
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler
 
+/**
+ * Centralized exception handler for application exceptions and validation failures.
+ *
+ * Converts internal exceptions into structured [ErrorResponse] payloads.
+ */
 @RestControllerAdvice
 class GlobalExceptionHandler : ResponseEntityExceptionHandler() {
 

@@ -12,6 +12,11 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.authority.SimpleGrantedAuthority
 import org.springframework.security.core.context.SecurityContextHolder
 
+/**
+ * Filter that validates incoming JWT bearer tokens and injects authentication context.
+ *
+ * Requests to authentication and swagger endpoints are excluded from filtering.
+ */
 @Component
 class JwtAuthenticationFilter(
     private val jwtTokenProvider: JwtTokenProvider

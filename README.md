@@ -1,1127 +1,412 @@
-# Library Management System
+﻿# Library Management System
 
-A complete, production-ready backend system for library management built with **Kotlin**, **Spring Boot**, **MongoDB**, **JWT Authentication**, **gRPC**, and **Docker**.
+A polished, production-ready backend for library management built with **Kotlin**, **Spring Boot**, **MongoDB**, **JWT**, **gRPC**, **Prometheus**, and **Docker**.
+
+![Project Architecture](docs/screenshots/architecture.png)
 
 ## Table of Contents
 
-- [Features](#features)
+- [Summary](#summary)
+- [Key Features](#key-features)
 - [Tech Stack](#tech-stack)
 - [Architecture](#architecture)
 - [Project Structure](#project-structure)
-- [Prerequisites](#prerequisites)
-- [Setup Instructions](#setup-instructions)
-- [Build & Run](#build--run)
-- [Docker Setup](#docker-setup)
+- [Getting Started](#getting-started)
+- [Configuration](#configuration)
 - [API Documentation](#api-documentation)
-- [gRPC Services](#grpc-services)
+- [Swagger Usage](#swagger-usage)
+- [Docker Compose Setup](#docker-compose-setup)
+- [MongoDB Setup](#mongodb-setup)
 - [Observability](#observability)
+- [gRPC Overview](#grpc-overview)
 - [Testing](#testing)
-- [Database Schema](#database-schema)
-- [Git Workflow](#git-workflow)
-- [Troubleshooting](#troubleshooting)
+- [Future Improvements](#future-improvements)
+- [Release Tags](#release-tags)
+- [Additional Resources](#additional-resources)
 
-## Features
+## Summary
 
-### Authentication & Security
-- ✅ User signup and login
-- ✅ JWT-based authentication
-- ✅ BCrypt password hashing
-- ✅ Role-based access control (RBAC)
-- ✅ Secure API endpoints
+This backend provides a secure, maintainable library management API that supports:
 
-### Book Management
-- ✅ Admin can add and view all books
-- ✅ Users can borrow and return books
-- ✅ Support for multiple book policies (NORMAL, EXPIRY, END_OF_DAY)
-- ✅ Automatic book return for expired books
-- ✅ Prevent duplicate borrowing
+- User registration and login
+- JWT-secured REST endpoints
+- Book borrowing and return workflows
+- Book policy rules (`NORMAL`, `EXPIRY`, `END_OF_DAY`)
+- Scheduled auto-return processing
+- gRPC service support
+- Prometheus/Grafana observability
+- Docker Compose deployment
 
-### Advanced Features
-- ✅ Scheduled tasks for automatic returns
-- ✅ REST APIs with comprehensive error handling
-- ✅ gRPC services for high-performance operations
-- ✅ Prometheus metrics & Grafana dashboards
-- ✅ Docker & Docker Compose setup
-- ✅ Swagger/OpenAPI documentation
-- ✅ Comprehensive unit & integration tests
+The implementation was improved for documentation, architecture clarity, and developer usability without changing existing business logic, API contract, or runtime behavior.
+
+## Key Features
+
+- Secure JWT authentication and authorization
+- Clean REST API design with consistent response payloads
+- MongoDB-backed persistence with auth-enabled access
+- Automatic book return workflows for borrow policies
+- Swagger/OpenAPI endpoint exploration
+- gRPC interface for high-performance integrations
+- Application health and metrics via Spring Boot Actuator
+- Dockerized local development and monitoring stack
 
 ## Tech Stack
 
 | Layer | Technology |
-|-------|-----------|
-| **Language** | Kotlin 1.9.20 |
-| **Framework** | Spring Boot 3.2.0 |
-| **Build Tool** | Gradle (Kotlin DSL) |
-| **Database** | MongoDB 7.0 |
-| **Authentication** | JWT (JJWT) |
-| **Password Encoding** | BCrypt |
-| **RPC** | gRPC + Protobuf |
-| **Observability** | Prometheus + Grafana + Micrometer |
-| **Documentation** | Swagger/OpenAPI 3.0 |
-| **Containerization** | Docker & Docker Compose |
-| **Testing** | JUnit 5, Kotest, MockK |
+|-------|------------|
+| Language | Kotlin 1.9.20 |
+| Framework | Spring Boot 3.2.0 |
+| Build Tool | Gradle (Kotlin DSL) |
+| Database | MongoDB 7.x |
+| Auth | JWT (JJWT) |
+| RPC | gRPC + Protobuf |
+| Monitoring | Micrometer + Prometheus + Grafana |
+| Docs | Swagger/OpenAPI |
+| Containerization | Docker / Docker Compose |
+| Testing | JUnit 5, Kotest, MockK |
 
 ## Architecture
 
-### Clean Architecture Layers
+The application is organized into distinct layers to preserve separation of concerns and support maintainability:
 
-```
-Controller (REST, gRPC)
-    ↓
-Service (Business Logic)
-    ↓
-Repository (Data Access)
-    ↓
-Model (Domain Objects)
-```
+- **Controller**: handles REST request routing and response wrapping
+- **Service**: implements business rules and transaction flows
+- **Repository**: performs MongoDB data access
+- **Model / DTO**: defines domain entities and API payloads
+- **Security**: manages JWT validation and authentication filter
+- **Scheduler**: executes periodic auto-return tasks
+- **gRPC**: exposes a secondary API surface for external clients
 
-### Directory Structure
+![API Flow](docs/screenshots/api-flow.png)
 
-```
+### High-level data flow
+
+1. Client sends REST request or gRPC call
+2. Authentication filter validates JWT and attaches user context
+3. Controller delegates to service layer
+4. Service applies domain rules and persists data via repository
+5. Response is returned in a consistent `ApiResponse` wrapper
+
+## Project Structure
+
+```text
 library-management-system/
 ├── src/
 │   ├── main/
 │   │   ├── kotlin/com/libmgmt/
-│   │   │   ├── controller/          # REST Controllers
-│   │   │   ├── service/             # Business Logic
-│   │   │   ├── repository/          # Data Access Layer
-│   │   │   ├── model/               # Domain Models
-│   │   │   ├── dto/                 # Data Transfer Objects
-│   │   │   ├── config/              # Configuration Classes
-│   │   │   ├── security/            # Security & JWT
-│   │   │   ├── scheduler/           # Scheduled Tasks
-│   │   │   ├── grpc/                # gRPC Services
-│   │   │   ├── exception/           # Custom Exceptions
-│   │   │   ├── util/                # Utility Classes
+│   │   │   ├── config/        # Spring and gRPC configuration
+│   │   │   ├── controller/    # REST controllers
+│   │   │   ├── service/       # Business logic
+│   │   │   ├── repository/    # MongoDB access
+│   │   │   ├── model/         # Domain models
+│   │   │   ├── dto/           # Request/response DTOs
+│   │   │   ├── security/      # JWT and auth filter
+│   │   │   ├── scheduler/     # Scheduled tasks
+│   │   │   ├── grpc/          # gRPC implementation
+│   │   │   ├── exception/     # Centralized error handling
+│   │   │   ├── util/          # Utility classes
 │   │   │   └── LibraryManagementSystemApplication.kt
-│   │   ├── proto/                   # gRPC Protobuf Files
+│   │   ├── proto/             # gRPC protobuf definitions
 │   │   └── resources/
-│   │       └── application.yml      # Configuration
-│   └── test/
-│       └── kotlin/com/libmgmt/      # Test Classes
-├── docker/
-│   └── init-mongo.js                # MongoDB Initialization
-├── prometheus/
-│   ├── prometheus.yml               # Prometheus Config
-│   └── grafana-provisioning/        # Grafana Setup
-├── build.gradle.kts                 # Gradle Build File
-├── Dockerfile                       # Docker Image
-├── docker-compose.yml               # Docker Compose
-└── README.md                        # This File
+│   │       └── application.yml
+│   └── test/                  # Unit and integration tests
+├── docker/                    # MongoDB initialization scripts
+├── prometheus/                # Monitoring configuration
+├── Dockerfile
+├── docker-compose.yml
+├── build.gradle.kts
+└── README.md
 ```
 
-## Prerequisites
+## Getting Started
 
-- **Java 21+** (OpenJDK or Eclipse Temurin)
-- **Gradle 8.0+** (or use `./gradlew`)
-- **Docker & Docker Compose** (for containerized setup)
-- **MongoDB 7.0+** (local or Docker)
-- **Git** (for version control)
-
-## Setup Instructions
-
-### Local Development Setup
-
-#### 1. Clone the Project
-
-```bash
-cd /path/to/kotlin
-```
-
-#### 2. Install Java 21
-
-```bash
-# Using SDKMAN (recommended)
-sdk install java 21.0.0-tem
-sdk use java 21.0.0-tem
-
-# Or download from eclipse-temurin.net
-```
-
-#### 3. Install MongoDB (Local)
-
-```bash
-# macOS
-brew tap mongodb/brew
-brew install mongodb-community
-
-# Ubuntu
-sudo apt-get install -y mongodb-org
-
-# Windows
-# Download from https://www.mongodb.com/try/download/community
-```
-
-#### 4. Start MongoDB
-
-```bash
-# macOS/Linux
-mongod
-
-# Windows
-"C:\Program Files\MongoDB\Server\7.0\bin\mongod.exe"
-```
-
-#### 5. Initialize MongoDB Database
-
-```bash
-# Connect to MongoDB
-mongosh
-
-# Run initialization
-use library_db
-db.createCollection('users')
-db.createCollection('books')
-db.users.createIndex({ email: 1 }, { unique: true })
-db.books.createIndex({ available: 1 })
-db.books.createIndex({ borrowedBy: 1 })
-```
-
-#### 6. Build the Project
+### Quick start
 
 ```bash
 cd library-management-system
-
-# Build project
-./gradlew build
-
-# Or using Gradle directly
-gradle build
-```
-
-#### 7. Configure Application
-
-Edit `src/main/resources/application.yml`:
-
-```yaml
-spring:
-  data:
-    mongodb:
-      uri: mongodb://localhost:27017
-      database: library_db
-
-jwt:
-  secret: "your-super-secret-key-change-in-production"
-  expiration: 86400000
-```
-
-#### 8. Run the Application
-
-```bash
-./gradlew bootRun
-
-# Application starts on http://localhost:8080
-```
-
-## Build & Run
-
-### Gradle Commands
-
-```bash
-# Build project
-./gradlew build
-
-# Run application
-./gradlew bootRun
-
-# Run tests
-./gradlew test
-
-# Run integration tests
-./gradlew integrationTest
-
-# Generate JAR
-./gradlew bootJar
-
-# Clean build
 ./gradlew clean build
-
-# View dependency tree
-./gradlew dependencies
+./gradlew bootRun
 ```
 
-### Running the JAR
+Default application URL:
 
-```bash
-# Build JAR
-./gradlew bootJar
-
-# Run JAR
-java -jar build/libs/library-management-system-1.0.0.jar
-
-# Run with custom properties
-java -Dspring.data.mongodb.uri=mongodb://host:27017 \
-     -Djwt.secret=your-secret \
-     -jar build/libs/library-management-system-1.0.0.jar
+```text
+http://localhost:8080/api
 ```
 
-## Docker Setup
+### Recommended workflow
 
-### Build and Run with Docker Compose
+1. Review `src/main/resources/application.yml`
+2. Configure MongoDB credentials and JWT settings
+3. Start services locally with `./gradlew bootRun`
+4. Explore endpoints using Swagger UI
+5. Run tests with `./gradlew test`
 
-```bash
-cd library-management-system
+## Configuration
 
-# Start all services
-docker-compose up -d
+### Application properties
 
-# View logs
-docker-compose logs -f app
+The main configuration file is `src/main/resources/application.yml`.
 
-# Stop services
-docker-compose down
+Key settings include:
 
-# Remove volumes
-docker-compose down -v
-```
+- `spring.data.mongodb.uri` — MongoDB connection URI
+- `spring.data.mongodb.database` — MongoDB database name
+- `jwt.secret` — JWT signing secret
+- `jwt.expiration` — JWT expiration in milliseconds
+- `grpc.server.port` — gRPC server port
+- `management.server.port` — actuator/metrics port
 
-### Services Started
+### Environment variables
 
-| Service | Port | URL | Credentials |
-|---------|------|-----|-------------|
-| **Application** | 8080 | http://localhost:8080 | N/A |
-| **Actuator** | 9090 | http://localhost:9090/actuator | N/A |
-| **gRPC** | 9091 | localhost:9091 | N/A |
-| **MongoDB** | 27017 | mongodb://admin:password123@localhost:27017 | admin/password123 |
-| **Prometheus** | 9000 | http://localhost:9000 | N/A |
-| **Grafana** | 3000 | http://localhost:3000 | admin/admin123 |
+The Docker Compose stack uses environment variables for the app service:
 
-### Build Docker Image Manually
-
-```bash
-# Build image
-docker build -t library-management-system:1.0.0 .
-
-# Run container
-docker run -d \
-  -p 8080:8080 \
-  -p 9090:9090 \
-  -p 9091:9091 \
-  -e SPRING_DATA_MONGODB_URI=mongodb://mongodb:27017 \
-  --name library-app \
-  library-management-system:1.0.0
-```
+- `SPRING_DATA_MONGODB_URI`
+- `SPRING_DATA_MONGODB_DATABASE`
+- `SPRING_DATA_MONGODB_AUTHENTICATION_DATABASE`
+- `JWT_SECRET`
+- `JWT_EXPIRATION`
+- `MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE`
 
 ## API Documentation
 
-### Base URL
-- **Development**: `http://localhost:8080/api`
-- **Production**: `https://api.library.com/api`
-
-### Swagger UI
-- **Swagger**: http://localhost:8080/swagger-ui.html
-- **OpenAPI JSON**: http://localhost:8080/v3/api-docs
+This backend exposes the following primary REST endpoints under `/api`.
 
 ### Authentication
 
-All protected endpoints require JWT token in Authorization header:
+#### Register
 
-```
-Authorization: Bearer eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJ...
-```
+- `POST /api/auth/signup`
+- Request body:
 
-### Authentication Endpoints
-
-#### 1. Signup
-
-```
-POST /auth/signup
-Content-Type: application/json
-
+```json
 {
-  "name": "John Doe",
-  "email": "john@example.com",
-  "password": "SecurePassword123"
+  "name": "Jane Doe",
+  "email": "jane@example.com",
+  "password": "Password123!"
 }
+```
 
-Response 201:
+- Success response:
+
+```json
 {
   "success": true,
   "message": "User registered successfully",
   "data": {
-    "id": "507f1f77bcf86cd799439011",
-    "name": "John Doe",
-    "email": "john@example.com",
+    "id": "...",
+    "name": "Jane Doe",
+    "email": "jane@example.com",
     "role": "USER",
-    "token": "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJqb2huQGV4YW1wbGUuY29tIiwiVXNlcklkIjoiNTA3ZjFmNzdiY2Y4NmNkNzk5NDM5MDExIiwiaWF0IjoxNjcwMDAwMDAwLCJleHAiOjE2NzAwODY0MDB9...",
+    "token": "...",
     "message": "User registered successfully"
   }
 }
 ```
 
-#### 2. Login
+#### Login
 
-```
-POST /auth/login
-Content-Type: application/json
+- `POST /api/auth/login`
+- Request body:
 
+```json
 {
-  "email": "john@example.com",
-  "password": "SecurePassword123"
+  "email": "jane@example.com",
+  "password": "Password123!"
 }
+```
 
-Response 200:
+- Success response:
+
+```json
 {
   "success": true,
   "message": "Login successful",
   "data": {
-    "id": "507f1f77bcf86cd799439011",
-    "name": "John Doe",
-    "email": "john@example.com",
+    "id": "...",
+    "name": "Jane Doe",
+    "email": "jane@example.com",
     "role": "USER",
-    "token": "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJqb2huQGV4YW1wbGUuY29tIiwiaWF0IjoxNjcwMDAwMDAwLCJleHAiOjE2NzAwODY0MDB9..."
+    "token": "...",
+    "message": "Login successful"
   }
 }
 ```
 
-### Admin Endpoints
+### Book Management
 
-#### 1. Create Book
+#### Get available books
 
-```
-POST /admin/books
-Authorization: Bearer <JWT_TOKEN>
-Content-Type: application/json
+- `GET /api/books`
 
+#### Get book by ID
+
+- `GET /api/books/{id}`
+
+#### Borrow a book
+
+- `POST /api/books/{id}/borrow`
+- Request body example:
+
+```json
 {
-  "title": "The Great Gatsby",
-  "author": "F. Scott Fitzgerald",
-  "policy": "NORMAL"
-}
-
-Response 201:
-{
-  "success": true,
-  "message": "Book added successfully",
-  "data": {
-    "id": "507f1f77bcf86cd799439012",
-    "title": "The Great Gatsby",
-    "author": "F. Scott Fitzgerald",
-    "available": true,
-    "borrowedBy": null,
-    "borrowedAt": null,
-    "expiryAt": null,
-    "policy": "NORMAL"
-  }
+  "expiryMinutes": 120
 }
 ```
 
-#### 2. Get All Books
+#### Return a book
 
-```
-GET /admin/books
-Authorization: Bearer <JWT_TOKEN>
+- `POST /api/books/{id}/return`
 
-Response 200:
-{
-  "success": true,
-  "message": "Books retrieved successfully",
-  "data": [
-    {
-      "id": "507f1f77bcf86cd799439012",
-      "title": "The Great Gatsby",
-      "author": "F. Scott Fitzgerald",
-      "available": true,
-      "borrowedBy": null,
-      "borrowedAt": null,
-      "expiryAt": null,
-      "policy": "NORMAL"
-    }
-  ]
-}
-```
+#### Get borrowed books for current user
 
-### User Endpoints
+- `GET /api/books/user/borrowed`
 
-#### 1. Get Available Books
+### API examples
 
-```
-GET /books
-Authorization: Bearer <JWT_TOKEN>
-
-Response 200:
-{
-  "success": true,
-  "message": "Available books retrieved",
-  "data": [
-    {
-      "id": "507f1f77bcf86cd799439012",
-      "title": "The Great Gatsby",
-      "author": "F. Scott Fitzgerald",
-      "available": true,
-      "borrowedBy": null,
-      "borrowedAt": null,
-      "expiryAt": null,
-      "policy": "NORMAL"
-    }
-  ]
-}
-```
-
-#### 2. Get Book By ID
-
-```
-GET /books/{id}
-Authorization: Bearer <JWT_TOKEN>
-
-Response 200:
-{
-  "success": true,
-  "message": "Book retrieved",
-  "data": {
-    "id": "507f1f77bcf86cd799439012",
-    "title": "The Great Gatsby",
-    "author": "F. Scott Fitzgerald",
-    "available": true,
-    "borrowedBy": null,
-    "borrowedAt": null,
-    "expiryAt": null,
-    "policy": "NORMAL"
-  }
-}
-```
-
-#### 3. Borrow Book
-
-```
-POST /books/{id}/borrow
-Authorization: Bearer <JWT_TOKEN>
-Content-Type: application/json
-
-{
-  "expiryMinutes": 1440
-}
-
-Response 200:
-{
-  "success": true,
-  "message": "Book borrowed successfully",
-  "data": {
-    "id": "507f1f77bcf86cd799439012",
-    "title": "The Great Gatsby",
-    "borrowedBy": "507f1f77bcf86cd799439011",
-    "borrowedAt": "2024-05-16T10:30:00",
-    "expiryAt": "2024-05-17T10:30:00",
-    "message": "Book borrowed successfully"
-  }
-}
-```
-
-#### 4. Return Book
-
-```
-POST /books/{id}/return
-Authorization: Bearer <JWT_TOKEN>
-
-Response 200:
-{
-  "success": true,
-  "message": "Book returned successfully",
-  "data": {
-    "id": "507f1f77bcf86cd799439012",
-    "title": "The Great Gatsby",
-    "message": "Book returned successfully"
-  }
-}
-```
-
-#### 5. Get User's Borrowed Books
-
-```
-GET /books/user/borrowed
-Authorization: Bearer <JWT_TOKEN>
-
-Response 200:
-{
-  "success": true,
-  "message": "Borrowed books retrieved",
-  "data": {
-    "userId": "507f1f77bcf86cd799439011",
-    "books": [
-      {
-        "id": "507f1f77bcf86cd799439012",
-        "title": "The Great Gatsby",
-        "author": "F. Scott Fitzgerald",
-        "available": false,
-        "borrowedBy": "507f1f77bcf86cd799439011",
-        "borrowedAt": "2024-05-16T10:30:00",
-        "expiryAt": "2024-05-17T10:30:00",
-        "policy": "EXPIRY"
-      }
-    ],
-    "count": 1
-  }
-}
-```
-
-#### 6. Get User Profile
-
-```
-GET /users/me
-Authorization: Bearer <JWT_TOKEN>
-
-Response 200:
-{
-  "success": true,
-  "message": "User profile retrieved",
-  "data": {
-    "id": "507f1f77bcf86cd799439011",
-    "name": "John Doe",
-    "email": "john@example.com",
-    "role": "USER",
-    "active": true,
-    "createdAt": "2024-05-15T10:00:00",
-    "updatedAt": "2024-05-15T10:00:00"
-  }
-}
-```
-
-### cURL Examples
+#### Register example
 
 ```bash
-# Signup
 curl -X POST http://localhost:8080/api/auth/signup \
   -H "Content-Type: application/json" \
-  -d '{
-    "name": "John Doe",
-    "email": "john@example.com",
-    "password": "SecurePassword123"
-  }'
+  -d '{"name":"Jane Doe","email":"jane@example.com","password":"Password123!"}'
+```
 
-# Login
+#### Login example
+
+```bash
 curl -X POST http://localhost:8080/api/auth/login \
   -H "Content-Type: application/json" \
-  -d '{
-    "email": "john@example.com",
-    "password": "SecurePassword123"
-  }'
+  -d '{"email":"jane@example.com","password":"Password123!"}'
+```
 
-# Get available books
-curl -X GET http://localhost:8080/api/books \
-  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+#### Borrow book example
 
-# Borrow a book
-curl -X POST http://localhost:8080/api/books/{BOOK_ID}/borrow \
-  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+```bash
+curl -X POST http://localhost:8080/api/books/{bookId}/borrow \
   -H "Content-Type: application/json" \
-  -d '{
-    "expiryMinutes": 1440
-  }'
-
-# Return a book
-curl -X POST http://localhost:8080/api/books/{BOOK_ID}/return \
-  -H "Authorization: Bearer YOUR_JWT_TOKEN"
-
-# Create a book (Admin)
-curl -X POST http://localhost:8080/api/admin/books \
-  -H "Authorization: Bearer ADMIN_JWT_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "title": "The Great Gatsby",
-    "author": "F. Scott Fitzgerald",
-    "policy": "NORMAL"
-  }'
-
-# Get all books (Admin)
-curl -X GET http://localhost:8080/api/admin/books \
-  -H "Authorization: Bearer ADMIN_JWT_TOKEN"
+  -H "Authorization: Bearer <jwt-token>" \
+  -d '{"expiryMinutes": 120}'
 ```
 
-## gRPC Services
+## Swagger Usage
 
-### Proto Definition
+Swagger UI is enabled and accessible at:
 
-The gRPC services are defined in `src/main/proto/book_service.proto`.
-
-### Supported Operations
-
-#### 1. GetBookById
-
-```protobuf
-rpc GetBookById(GetBookByIdRequest) returns (GetBookByIdResponse);
+```text
+http://localhost:8080/swagger-ui.html
 ```
 
-**Request:**
-```json
-{
-  "id": "507f1f77bcf86cd799439012"
-}
+Use the `Authorize` button inside Swagger UI to enter a bearer token in the format:
+
+```text
+Bearer <JWT_TOKEN>
 ```
 
-**Response:**
-```json
-{
-  "success": true,
-  "message": "Book retrieved successfully",
-  "book": {
-    "id": "507f1f77bcf86cd799439012",
-    "title": "The Great Gatsby",
-    "author": "F. Scott Fitzgerald",
-    "available": true,
-    "borrowed_by": "",
-    "borrowed_at": "",
-    "expiry_at": "",
-    "policy": "NORMAL"
-  }
-}
+The API documentation is auto-generated from controller metadata and DTO annotations.
+
+![Swagger UI placeholder](docs/screenshots/swagger-ui.png)
+
+## Docker Compose Setup
+
+The repository includes a `docker-compose.yml` file that starts:
+
+- `mongodb` — MongoDB database
+- `app` — Kotlin Spring Boot backend
+- `prometheus` — metrics engine
+- `grafana` — visualization dashboard
+
+### Start full stack
+
+```bash
+docker compose up --build
 ```
 
-#### 2. ListBooks
+### Shutdown
 
-```protobuf
-rpc ListBooks(ListBooksRequest) returns (ListBooksResponse);
+```bash
+docker compose down
 ```
 
-**Request:**
-```json
-{
-  "available_only": true
-}
+### Health checks
+
+- App health endpoint: `http://localhost:8080/actuator/health`
+- Prometheus UI: `http://localhost:9000`
+- Grafana UI: `http://localhost:3000`
+
+## MongoDB Setup
+
+### Local MongoDB
+
+Use a local MongoDB installation or Docker Compose.
+
+The project uses an authenticated MongoDB URI with `authSource=admin`.
+
+Example local URI:
+
+```text
+mongodb://admin:password123@localhost:27017/library_db?authSource=admin
 ```
 
-**Response:**
-```json
-{
-  "success": true,
-  "message": "Books retrieved successfully",
-  "books": [
-    {
-      "id": "507f1f77bcf86cd799439012",
-      "title": "The Great Gatsby",
-      "author": "F. Scott Fitzgerald",
-      "available": true,
-      "borrowed_by": "",
-      "borrowed_at": "",
-      "expiry_at": "",
-      "policy": "NORMAL"
-    }
-  ],
-  "count": 1
-}
-```
+### Docker Compose MongoDB
 
-### gRPC Client Example (Kotlin)
-
-```kotlin
-import com.libmgmt.grpc.*
-import io.grpc.ManagedChannelBuilder
-
-fun main() {
-    val channel = ManagedChannelBuilder.forAddress("localhost", 9091)
-        .usePlaintext()
-        .build()
-
-    val stub = BookServiceGrpc.newBlockingStub(channel)
-
-    // Get book by ID
-    val bookRequest = GetBookByIdRequest.newBuilder()
-        .setId("507f1f77bcf86cd799439012")
-        .build()
-
-    val bookResponse = stub.getBookById(bookRequest)
-    println("Book: ${bookResponse.book.title}")
-
-    // List books
-    val listRequest = ListBooksRequest.newBuilder()
-        .setAvailableOnly(true)
-        .build()
-
-    val listResponse = stub.listBooks(listRequest)
-    println("Available books: ${listResponse.count}")
-
-    channel.shutdown()
-}
-```
+The Compose service mounts `docker/init-mongo.js` to initialize the database during startup.
 
 ## Observability
 
-### Prometheus Metrics
+The application exposes actuator metrics and Prometheus integration:
 
-Access metrics at: **http://localhost:9000**
+- Actuator health and metrics endpoints
+- Prometheus scraping configured in `prometheus/prometheus.yml`
+- Grafana dashboards provisioned in `prometheus/grafana-provisioning`
 
-Key metrics:
-- `http_requests_total` - Total HTTP requests
-- `http_request_duration_seconds` - Request duration
-- `jvm_memory_used_bytes` - JVM memory usage
-- `jvm_threads_peak_threads` - Peak thread count
-- `process_uptime_seconds` - Application uptime
+Observability endpoints:
 
-### Health Check
+- `http://localhost:8080/actuator/health`
+- `http://localhost:8080/actuator/prometheus`
+- `http://localhost:8080/actuator/info`
 
-```
-GET http://localhost:8080/actuator/health
+## gRPC Overview
 
-Response:
-{
-  "status": "UP",
-  "components": {
-    "db": {
-      "status": "UP",
-      "details": {
-        "hello": 1
-      }
-    }
-  }
-}
-```
+The backend also exposes a gRPC interface for book operations.
 
-### Prometheus Endpoint
+- Protobuf source: `src/main/proto/book_service.proto`
+- Generated client code: `build/generated/source/proto/main/`
+- gRPC port: `9091`
 
-```
-GET http://localhost:9090/actuator/prometheus
-```
-
-### Grafana Dashboards
-
-Access Grafana: **http://localhost:3000**
-
-Login: **admin / admin123**
-
-Dashboards are auto-provisioned for:
-- JVM Metrics
-- HTTP Requests
-- Database Performance
-- Application Uptime
+Use gRPC to integrate with high-performance non-HTTP clients while preserving the same business logic.
 
 ## Testing
 
-### Run All Tests
+Execute the test suite with:
 
 ```bash
 ./gradlew test
 ```
 
-### Run Specific Test Class
+Verify build and tests remain green after documentation or comment-only updates.
+
+## Future Improvements
+
+Potential enhancements for future releases:
+
+- Separate admin and user roles more explicitly in the API
+- Add dedicated integration tests for gRPC endpoints
+- Implement request rate limiting and advanced security policies
+- Add production-grade secret management and environment profiles
+- Improve Grafana dashboards with custom library metrics
+- Add API versioning and feature toggle support
+
+## Release Tags
+
+Suggested git tags for organized releases:
 
 ```bash
-./gradlew test --tests AuthServiceTest
+git tag -a v1.0.0-http-apis -m "Step 1: HTTP API implementation"
+git tag -a v1.1.0-docker-observability -m "Step 2: Docker and observability setup"
+git tag -a v1.2.0-grpc -m "Step 3: gRPC support"
 ```
 
-### Generate Test Report
+## Additional Resources
 
-```bash
-./gradlew test
-
-# Report location:
-# build/reports/tests/test/index.html
-```
-
-### Code Coverage
-
-```bash
-./gradlew jacocoTestReport
-
-# Report location:
-# build/reports/jacoco/test/html/index.html
-```
-
-### Test Types
-
-#### Unit Tests
-- `AuthServiceTest` - Authentication logic
-- `BookServiceTest` - Book operations
-- `JwtTokenProviderTest` - JWT token generation
-
-#### Integration Tests
-- Controller layer tests
-- Repository layer tests
-- End-to-end API tests
-
-## Database Schema
-
-### MongoDB Collections
-
-#### Users Collection
-
-```json
-{
-  "_id": ObjectId(),
-  "name": "John Doe",
-  "email": "john@example.com",
-  "password": "$2a$10$...", // BCrypted
-  "role": "USER", // USER or ADMIN
-  "active": true,
-  "createdAt": ISODate("2024-05-15T10:00:00Z"),
-  "updatedAt": ISODate("2024-05-15T10:00:00Z")
-}
-```
-
-#### Books Collection
-
-```json
-{
-  "_id": ObjectId(),
-  "title": "The Great Gatsby",
-  "author": "F. Scott Fitzgerald",
-  "available": true,
-  "borrowedBy": null, // User ID when borrowed
-  "borrowedAt": null, // Borrow timestamp
-  "expiryAt": null, // Expiry timestamp
-  "policy": "NORMAL", // NORMAL, EXPIRY, or END_OF_DAY
-  "createdAt": ISODate("2024-05-15T10:00:00Z"),
-  "updatedAt": ISODate("2024-05-15T10:00:00Z")
-}
-```
-
-### Indexes
-
-```bash
-db.users.createIndex({ email: 1 }, { unique: true })
-db.books.createIndex({ available: 1 })
-db.books.createIndex({ borrowedBy: 1 })
-db.books.createIndex({ expiryAt: 1 })
-```
-
-## Git Workflow
-
-### Initial Setup
-
-```bash
-cd library-management-system
-git init
-git config user.email "your-email@example.com"
-git config user.name "Your Name"
-```
-
-### Commit Structure
-
-```bash
-# Step 1: Authentication
-git add .
-git commit -m "feat: Add JWT authentication and user signup/login"
-git tag step-1-auth
-
-# Step 2: Book Management
-git add .
-git commit -m "feat: Add book management and borrow/return functionality"
-git tag step-1-books
-
-# Step 3: Borrow/Return
-git add .
-git commit -m "feat: Add book borrowing and return policies"
-git tag step-1-borrow
-
-# Step 4: Docker
-git add .
-git commit -m "chore: Add Docker and Docker Compose configuration"
-git tag step-2-docker
-
-# Step 5: Observability
-git add .
-git commit -m "chore: Add Prometheus and Grafana monitoring"
-git tag step-2-observability
-
-# Step 6: gRPC
-git add .
-git commit -m "feat: Add gRPC services for book operations"
-git tag step-3-grpc
-```
-
-### View Tags
-
-```bash
-git tag -l
-git show step-1-auth
-```
-
-## Troubleshooting
-
-### MongoDB Connection Failed
-
-```
-Error: connect ECONNREFUSED 127.0.0.1:27017
-```
-
-**Solution:**
-```bash
-# Check if MongoDB is running
-ps aux | grep mongod
-
-# Start MongoDB
-mongod
-
-# Or with Docker
-docker run -d -p 27017:27017 mongo:7.0
-```
-
-### JWT Token Invalid
-
-```
-Error: JWT token validation failed
-```
-
-**Solution:**
-- Ensure `JWT_SECRET` is set correctly
-- Check token expiration
-- Verify Bearer prefix in Authorization header: `Bearer <token>`
-
-### Port Already in Use
-
-```
-Error: Address already in use
-```
-
-**Solution:**
-```bash
-# Find process using port 8080
-lsof -i :8080
-
-# Kill process
-kill -9 <PID>
-
-# Or change port in application.yml
-server:
-  port: 8081
-```
-
-### Docker Compose Issues
-
-```
-Error: Cannot connect to Docker daemon
-```
-
-**Solution:**
-```bash
-# Ensure Docker is running
-systemctl start docker
-
-# Or on macOS
-open /Applications/Docker.app
-
-# Check Docker status
-docker ps
-```
-
-### Build Failures
-
-```
-Error: could not find GradleVersion
-```
-
-**Solution:**
-```bash
-# Update Gradle wrapper
-./gradlew wrapper --gradle-version=8.5
-
-# Clean build
-./gradlew clean build
-```
-
-### MongoDB Authentication Failed
-
-```
-Error: Authentication failed
-```
-
-**Solution in docker-compose.yml:**
-```yaml
-environment:
-  MONGO_INITDB_ROOT_USERNAME: admin
-  MONGO_INITDB_ROOT_PASSWORD: password123
-
-spring:
-  data:
-    mongodb:
-      uri: mongodb://admin:password123@mongodb:27017/library_db?authSource=admin
-```
-
-## Performance Tips
-
-1. **Database Indexing**: Ensure all frequently queried fields have indexes
-2. **Connection Pooling**: Configure MongoDB connection pool size
-3. **Caching**: Implement Redis for frequently accessed data
-4. **Load Testing**: Use tools like Apache JMeter to test performance
-5. **Monitoring**: Regular check Prometheus/Grafana dashboards
-
-## Security Considerations
-
-1. **JWT Secret**: Use strong, randomly generated secret in production
-2. **HTTPS**: Enable SSL/TLS in production
-3. **Rate Limiting**: Implement rate limiting for API endpoints
-4. **Input Validation**: All inputs are validated (already implemented)
-5. **CORS**: Configure CORS appropriately for your frontend
-
-## Production Deployment
-
-### Environment Variables
-
-```bash
-export SPRING_DATA_MONGODB_URI=mongodb://user:password@prod-mongo:27017/library_db
-export JWT_SECRET=your-very-secure-random-secret-key
-export JWT_EXPIRATION=86400000
-export SPRING_PROFILES_ACTIVE=prod
-```
-
-### Docker Production Build
-
-```bash
-docker build -t library-management-system:latest .
-docker tag library-management-system:latest registry.example.com/library-management-system:latest
-docker push registry.example.com/library-management-system:latest
-```
-
-### Kubernetes Deployment (Optional)
-
-Create `k8s-deployment.yaml`:
-
-```yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: library-management-system
-spec:
-  replicas: 3
-  selector:
-    matchLabels:
-      app: library-app
-  template:
-    metadata:
-      labels:
-        app: library-app
-    spec:
-      containers:
-      - name: app
-        image: registry.example.com/library-management-system:latest
-        ports:
-        - containerPort: 8080
-        env:
-        - name: SPRING_DATA_MONGODB_URI
-          valueFrom:
-            secretKeyRef:
-              name: app-secrets
-              key: mongodb-uri
-```
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
-
-## License
-
-This project is licensed under the MIT License - see LICENSE file for details.
-
-## Support
-
-For issues, questions, or suggestions:
-- Create an issue on GitHub
-- Send email to library@example.com
-- Check existing issues and discussions
-
-## Version History
-
-- **1.0.0** (2024-05-16) - Initial release with complete feature set
-  - JWT Authentication
-  - Book Management
-  - gRPC Services
-  - Docker Setup
-  - Prometheus + Grafana
-  - Comprehensive Tests
-  - Full Documentation
-
----
-
-**Built with ❤️ using Kotlin, Spring Boot, and MongoDB**
+For extended configuration, deployment, and development notes, use the repository's existing documentation files such as `CONFIG.md`, `DEPLOYMENT.md`, and `DEVELOPMENT.md`.
