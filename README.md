@@ -39,6 +39,39 @@ This backend provides a secure, maintainable library management API that support
 
 The implementation was improved for documentation, architecture clarity, and developer usability without changing existing business logic, API contract, or runtime behavior.
 
+
+## Running the Library Management System
+Prerequisites
+
+Before starting the application, make sure the following are installed:
+
+Docker Desktop
+Docker Compose
+Java 21 (optional for local development)
+VS Code or IntelliJ IDEA (recommended)
+Step 1 — Start Docker Desktop
+ - Open Docker Desktop and wait until: 'Engine running'
+Step 2 — Open Terminal
+ - Open PowerShell or terminal inside the project folder
+Step 3 — Build and Start the Application
+ - docker compose up --build
+   
+   This command will:
+
+Build the Kotlin Spring Boot application
+Start MongoDB
+Start Prometheus
+Start Grafana
+Start the backend API server
+
+Step 4 — Access the Application
+http://localhost:8080/swagger-ui.html
+grafana dashboard - http://localhost:3000
+
+Step 5 - Stopping the Application
+CTRL + C
+docker compose down
+
 ## Key Features
 
 - Secure JWT authentication and authorization
