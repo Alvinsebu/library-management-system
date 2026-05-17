@@ -2,7 +2,6 @@
 
 A polished, production-ready backend for library management built with **Kotlin**, **Spring Boot**, **MongoDB**, **JWT**, **gRPC**, **Prometheus**, and **Docker**.
 
-![Project Architecture](docs/screenshots/architecture.png)
 
 ## Table of Contents
 
